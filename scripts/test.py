@@ -22,7 +22,6 @@ class MoveGroupPythonInteface(object):
 
         self.set_io = rospy.ServiceProxy(service_name, SetIO)
 
-
         # List subscribers below...
         self.gripper_server_publisher = rospy.Publisher('robotToGripper', String, queue_size=10)
 
@@ -131,6 +130,7 @@ class MoveGroupPythonInteface(object):
 
 def main():
     try:
+        print " testttttsssss"
         mgpi = MoveGroupPythonInteface()
         mgpi.test_run()
     except rospy.ROSInterruptException:

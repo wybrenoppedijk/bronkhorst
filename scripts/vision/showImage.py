@@ -13,6 +13,7 @@ import sensor_msgs.msg
 import sensor_msgs.msg
 import sensor_msgs.srv
 import Queue
+import detector
 
 class ConsumerThread(threading.Thread):
     def __init__(self, queue, function):
@@ -59,8 +60,9 @@ class LfeDetector:
 
     def handle_img_msg(self, msg):
         undistorted_img = self.msg_to_img(msg)
+        detector.draw_circles(undistorted_img, detector.detect_circles(undistorted_img))
         cv2.imshow('u', undistorted_img)
-        cv2.waitKey(4)
+        cv2.waitKey(0)
 
     def parse_calibration_file(self, path):
         with open(path, 'r') as fobj:
