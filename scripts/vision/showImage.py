@@ -4,6 +4,7 @@ import time
 from collections import deque
 
 import cv2
+import yaml
 from cv_bridge import CvBridge, CvBridgeError
 import message_filters
 import numpy as np
@@ -11,11 +12,7 @@ import rospy
 import sensor_msgs.msg
 import sensor_msgs.msg
 import sensor_msgs.srv
-import detector
-import yaml
 import Queue
-from bronkhorst.msg import LfeCoordinateArray
-
 
 class ConsumerThread(threading.Thread):
     def __init__(self, queue, function):
@@ -48,7 +45,6 @@ class LfeDetector:
         msub = message_filters.Subscriber('camera/image_raw', sensor_msgs.msg.Image)
 
         msub.registerCallback(self.queue_monocular)
-        self.pub = rospy.Publisher('lfe_coordinates', LfeCoordinateArray, queue_size=1)
 
         mth = ConsumerThread(self.q_mono, self.handle_img_msg)
         mth.setDaemon(True)
@@ -62,10 +58,9 @@ class LfeDetector:
         return cv2.undistort(image, self.cm, self.coeffs, None, self.ncm)
 
     def handle_img_msg(self, msg):
-        lfe_properties = detector.get_lfe_properties(self.msg_to_img(msg))
-        print lfe_properties
-        if not lfe_properties:
-            self.pub.publish(lfe_properties)
+        undistorted_img = self.msg_to_img(msg)
+        cv2.imshow('u', undistorted_img)
+        cv2.waitKey(4)
 
     def parse_calibration_file(self, path):
         with open(path, 'r') as fobj:
@@ -89,5 +84,5 @@ def main():
     rospy.spin()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

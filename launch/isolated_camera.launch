@@ -1,0 +1,7 @@
+<launch>
+
+    <node
+        pkg="bronkhorst"
+        type="showImage.py"
+        name="showImage"/>
+</launch>
