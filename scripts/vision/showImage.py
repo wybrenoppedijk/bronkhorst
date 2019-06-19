@@ -44,7 +44,6 @@ class LfeDetector:
 
         self.bridge = CvBridge()
         msub = message_filters.Subscriber('camera/image_raw', sensor_msgs.msg.Image)
-
         msub.registerCallback(self.queue_monocular)
 
         mth = ConsumerThread(self.q_mono, self.handle_img_msg)
@@ -60,9 +59,9 @@ class LfeDetector:
 
     def handle_img_msg(self, msg):
         undistorted_img = self.msg_to_img(msg)
-        detector.draw_circles(undistorted_img, detector.detect_circles(undistorted_img))
+        # detector.draw_circles(undistorted_img, detector.detect_circles(undistorted_img))
         cv2.imshow('u', undistorted_img)
-        cv2.waitKey(0)
+        cv2.waitKey(4)
 
     def parse_calibration_file(self, path):
         with open(path, 'r') as fobj:

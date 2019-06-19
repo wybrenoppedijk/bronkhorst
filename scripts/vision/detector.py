@@ -5,6 +5,10 @@ import rospy
 from bronkhorst.msg import LfeCoordinateArray, LfeCoordinate
 
 MIN_MATCH_COUNT = 10
+FOV_WIDTH = 0.2510
+FOV_HEIGHT = 0.1585
+FOV_PIX_X = 1936.0
+FOV_PIX_Y = 1216.0
 
 
 def detect_circles(img):
@@ -37,8 +41,8 @@ def sif_feature_detection(test_img):
     bf = cv.BFMatcher(cv.NORM_HAMMING, crossCheck=True)
     matches = bf.match(des1, des2)
 
-    print "matches"
-    print(len(matches))
+    # print "matches"
+    # print(len(matches))
 
     return len(matches)
 
@@ -57,28 +61,34 @@ def draw_circles(img, circles):
         # circle outline
     return img
 
-def get_lfe_properties(img):
+
+def convert_to_robot_coordinates(coordinates):
+    x_conversion = FOV_WIDTH / FOV_PIX_X
+    y_conversion = FOV_HEIGHT / FOV_PIX_Y
+    meter_coordinates = [0, 0]
+    meter_coordinates[0] = coordinates[0] * x_conversion
+    meter_coordinates[1] = coordinates[1] * y_conversion
+    return meter_coordinates
+
+
+def get_lfe_property(img):
     circles = detect_circles(img)
-    print "circles"
-    print circles
-    msg = LfeCoordinateArray()
-    if not circles.any():
-        for i in circles[0, :]:
-            cropped_circle_img = crop_circle_img(img, i, 30)
-            # print(sif_feature_detection(template, cropped_circle_img))
-            if sif_feature_detection(template, cropped_circle_img) > MIN_MATCH_COUNT:
-                lfe_coordinate = LfeCoordinate()
-                lfe_coordinate.x_axe = i[0]
-                lfe_coordinate.y_axe = i[1]
-                lfe_coordinate.upside = True
-                msg.lfe_Coordinates.append(lfe_coordinate)
-            else:
-                lfe_coordinate = LfeCoordinate()
-                lfe_coordinate.x_axe = i[0]
-                lfe_coordinate.y_axe = i[1]
-                lfe_coordinate.upside = False
-                msg.lfe_Coordinates.append(lfe_coordinate)
-        return msg
+    if circles.any():
+        circle = circles[0][0]
+        cropped_circle_img = crop_circle_img(img, circle, 30)
+        lfe_coordinate = LfeCoordinate()
+        meter_coordinates = convert_to_robot_coordinates(circle)
+        # print(sif_feature_detection(template, cropped_circle_img))
+        if sif_feature_detection(cropped_circle_img) > MIN_MATCH_COUNT:
+            lfe_coordinate.x_axe = meter_coordinates[0]
+            lfe_coordinate.y_axe = meter_coordinates[1]
+            lfe_coordinate.upside = True
+        else:
+            lfe_coordinate = LfeCoordinate()
+            lfe_coordinate.x_axe = meter_coordinates[0]
+            lfe_coordinate.y_axe = meter_coordinates[1]
+            lfe_coordinate.upside = False
+        return lfe_coordinate
     else:
         # print("Finished")
         return None

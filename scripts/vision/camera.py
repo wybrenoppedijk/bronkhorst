@@ -14,23 +14,9 @@ import sensor_msgs.srv
 import detector
 import yaml
 import Queue
-from bronkhorst.msg import LfeCoordinateArray
-
-
-class ConsumerThread(threading.Thread):
-    def __init__(self, queue, function):
-        threading.Thread.__init__(self)
-        self.queue = queue
-        self.function = function
-
-    def run(self):
-        while True:
-            while True:
-                m = self.queue.get()
-                if self.queue.empty():
-                    break
-            self.function(m)
-
+import tf
+import time
+from bronkhorst.msg import LfeCoordinate
 
 class LfeDetector:
 
@@ -41,31 +27,28 @@ class LfeDetector:
         self.cm, self.coeffs, w, h = cal_params
         self.ncm, _ = cv2.getOptimalNewCameraMatrix(self.cm, self.coeffs,
                                                     (w, h), 0, (w, h))
-
-        self.q_mono = Queue.Queue()
-
         self.bridge = CvBridge()
-        msub = message_filters.Subscriber('camera/image_raw', sensor_msgs.msg.Image)
+        self.pub = rospy.Publisher('lfe_coordinate', LfeCoordinate, queue_size=1)
+        self.tf_br = tf.TransformBroadcaster()
+        rospy.init_node('lfe_detector')
+        rospy.sleep(0.1)
+        img_sub = message_filters.Subscriber('camera/image_raw', sensor_msgs.msg.Image)
+        img_sub.registerCallback(self.handle_img_msg)
 
-        msub.registerCallback(self.queue_monocular)
-        self.pub = rospy.Publisher('lfe_coordinates', LfeCoordinateArray, queue_size=1)
-
-        mth = ConsumerThread(self.q_mono, self.handle_img_msg)
-        mth.setDaemon(True)
-        mth.start()
-
-    def queue_monocular(self, msg):
-        self.q_mono.put(msg)
 
     def msg_to_img(self, msg):
         image = self.bridge.imgmsg_to_cv2(msg)
         return cv2.undistort(image, self.cm, self.coeffs, None, self.ncm)
 
     def handle_img_msg(self, msg):
-        lfe_properties = detector.get_lfe_properties(self.msg_to_img(msg))
-        print lfe_properties
-        if not lfe_properties:
-            self.pub.publish(lfe_properties)
+        lfe_property = detector.get_lfe_property(self.msg_to_img(msg))
+        if lfe_property:
+            msg = LfeCoordinate()
+            msg.x_axe = float(lfe_property.x_axe)
+            msg.y_axe = float(lfe_property.y_axe)
+            msg.upside = bool(lfe_property.upside)
+
+            self.pub.publish(msg)
 
     def parse_calibration_file(self, path):
         with open(path, 'r') as fobj:
@@ -84,7 +67,6 @@ class LfeDetector:
 
 
 def main():
-    rospy.init_node('lfe_detector')
     LfeDetector()
     rospy.spin()
 

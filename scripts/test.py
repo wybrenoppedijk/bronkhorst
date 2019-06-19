@@ -9,13 +9,16 @@ import rospy
 import tf
 from bronkhorst.srv import SetIO
 import numpy as np
+from bronkhorst.msg import LfeCoordinate
 
+DEFAULT_HEIGHT = 0.045
 
 class MoveGroupPythonInteface(object):
     def __init__(self):
         super(MoveGroupPythonInteface, self).__init__()
 
         moveit_commander.roscpp_initialize(sys.argv)
+
         rospy.init_node('robot_manipulator', anonymous=True)
         service_name = '/aubo_driver/set_io'
         rospy.wait_for_service(service_name)
@@ -34,7 +37,7 @@ class MoveGroupPythonInteface(object):
         self.planning_frame = self.group.get_planning_frame()
         self.group_names = self.robot.get_group_names()
 
-        # Allow replanning to increase the odds of a solution
+        self.orientation = tf.transformations.quaternion_from_euler(3.106, 0.0, -1.507) #3.12 0.015 0.269
 
         # Robot configuration
         self.group.set_goal_position_tolerance(0.01)
@@ -43,89 +46,70 @@ class MoveGroupPythonInteface(object):
         self.group.set_max_acceleration_scaling_factor(0.1)
         self.group.set_max_velocity_scaling_factor(0.1)
 
+        lfe_sub = message_filters.Subscriber('lfe_coordinate', LfeCoordinate)
+        lfe_sub.registerCallback(self.handle_lfe_position)
+
     def set_arm_height(self, z_axe):
         waypoints = []
 
         wgoal = self.group.get_current_pose().pose
-        q = tf.transformations.quaternion_from_euler(3.106, 0.0, -2.759) #3.12 0.015 0.269
 
         wgoal.position.z = z_axe
 
-        wgoal.orientation.x = q[0]
-        wgoal.orientation.y = q[1]
-        wgoal.orientation.z = q[2]
-        wgoal.orientation.w = q[3]
+        wgoal.orientation.x = self.orientation[0]
+        wgoal.orientation.y = self.orientation[1]
+        wgoal.orientation.z = self.orientation[2]
+        wgoal.orientation.w = self.orientation[3]
         waypoints.append(copy.deepcopy(wgoal))
 
         self.plan_and_execute(waypoints)
 
-    def move_to(self, coordinates):
+    def move_to(self, x, y, z):
         waypoints = []
         wgoal = geometry_msgs.msg.Pose()
-        q = tf.transformations.quaternion_from_euler(3.106, 0.0, -2.759) #3.12 0.015 0.269
 
-        wgoal.position.x = coordinates[0]
-        wgoal.position.y = coordinates[1]
-        wgoal.position.z = coordinates[2]
+        wgoal.position.x = x
+        wgoal.position.y = y
+        wgoal.position.z = z
 
-        wgoal.orientation.x = q[0]
-        wgoal.orientation.y = q[1]
-        wgoal.orientation.z = q[2]
-        wgoal.orientation.w = q[3]
+        wgoal.orientation.x = self.orientation[0]
+        wgoal.orientation.y = self.orientation[1]
+        wgoal.orientation.z = self.orientation[2]
+        wgoal.orientation.w = self.orientation[3]
         waypoints.append(copy.deepcopy(wgoal))
-
-
         self.plan_and_execute(waypoints)
+
+    def move_to_pillar(self, upside):
+        if upside:
+            self.move_to()  # pillar for upside lfe
+        if not upside:
+            self.move_to()  # pillar for downside lfe
+
+    def move_to_home(self):
+        self.move_to()  #  home coordinates or joint states.
 
     def plan_and_execute(self, goal):
         self.group.set_start_state_to_current_state()
         plan, fraction = self.group.compute_cartesian_path(goal, 0.1, 0.0, True)
         self.group.execute(plan, wait=True)
 
-    def set_vacuum_state(self, state):
+    def set_vacuum_state(self, state):  # ON = 2, OFF = 0
         try:
             return self.set_io(1, 3, state)
         except rospy.ServiceException, e:
             print "Service call failed: %s" % e
 
-    def get_state(self, counter):
-        if counter % 2 == 0:
-            return 2
-        else:
-            return 0
-
-    def test_run(self):
-        print "**********STARTING TEST RUN**********"
-        counter = 0
-        while True:
-            self.move_to((0.175, 0.785, 0.136))
-            rospy.sleep(0.2)
-            self.set_arm_height(-0.0127)
-            rospy.sleep(0.2)
-            self.set_vacuum_state(self.get_state(counter))
-            rospy.sleep(0.2)
-            self.set_arm_height(0.136)
-            rospy.sleep(0.2)
-            self.move_to((-0.263, 0.656, 0.136))
-            rospy.sleep(0.2)
-            self.set_arm_height(-0.013)
-            self.set_vacuum_state(self.get_state(counter + 1))
-            rospy.sleep(0.2)
-            self.set_arm_height(0.136)
-            rospy.sleep(0.2)
-            self.move_to((-0.087, 0.861, 0.136))
-            rospy.sleep(0.2)
-            self.set_arm_height(-0.01098)
-            rospy.sleep(0.2)
-            self.set_vacuum_state(self.get_state(counter))
-            rospy.sleep(0.2)
-            self.set_arm_height(0.136)
-            rospy.sleep(0.2)
-            counter += 1
-        print self.group.get_current_pose()
-        # self.move_to_coordinates()
-        print "**********TEST RUN END**********"
-
+    def handle_lfe_position(self, msg):
+        self.move_to(msg.x_axe, msg.y_axe, DEFAULT_HEIGHT)
+        rospy.sleep(0.2)
+        self.set_vacuum_state(2)
+        rospy.sleep(0.2)
+        self.set_arm_height()  #should be the z pos that does not destroy the LFE, or read vacuum meter.
+        rospy.sleep(0.4)
+        self.move_to_pillar(msg.upside)
+        rospy.sleep(0.4)
+        self.set_vacuum_state(0)
+        self.move_to_home()
 
 
 def main():
