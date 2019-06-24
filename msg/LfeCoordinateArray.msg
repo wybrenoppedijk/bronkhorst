@@ -1,1 +1,0 @@
-LfeCoordinate[] lfe_Coordinates

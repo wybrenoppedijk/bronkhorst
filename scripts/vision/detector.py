@@ -16,7 +16,7 @@ def detect_circles(img):
     rows = img.shape[0]
     circles = cv.HoughCircles(img, cv.HOUGH_GRADIENT, 1, rows / 8,
                               param1=90, param2=20,
-                              minRadius=35, maxRadius=45)
+                              minRadius=35, maxRadius=45)  # min max height is dependent on camera height
     if circles is not None:
         return np.uint16(np.around(circles))
     else:

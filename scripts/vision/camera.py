@@ -29,7 +29,6 @@ class LfeDetector:
                                                     (w, h), 0, (w, h))
         self.bridge = CvBridge()
         self.pub = rospy.Publisher('lfe_coordinate', LfeCoordinate, queue_size=1)
-        self.tf_br = tf.TransformBroadcaster()
         rospy.init_node('lfe_detector')
         rospy.sleep(0.1)
         img_sub = message_filters.Subscriber('camera/image_raw', sensor_msgs.msg.Image)
