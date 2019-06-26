@@ -59,7 +59,7 @@ class LfeDetector:
 
     def handle_img_msg(self, msg):
         undistorted_img = self.msg_to_img(msg)
-        # detector.draw_circles(undistorted_img, detector.detect_circles(undistorted_img))
+        detector.draw_circles(undistorted_img, detector.detect_circles(undistorted_img))
         cv2.imshow('u', undistorted_img)
         cv2.waitKey(4)
 

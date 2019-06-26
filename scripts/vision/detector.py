@@ -4,7 +4,7 @@ import rospy
 
 from bronkhorst.msg import LfeCoordinate
 
-MIN_MATCH_COUNT = 10
+MIN_MATCH_COUNT = 70
 FOV_WIDTH = 0.2510
 FOV_HEIGHT = 0.1585
 FOV_PIX_X = 1936.0
@@ -40,38 +40,38 @@ def sif_feature_detection(test_img):
 
     bf = cv.BFMatcher(cv.NORM_HAMMING, crossCheck=True)
 
-    if des1.any() or des2.any():
+    if not (des1 is None) and not (des2 is None) and des2.any() and des1.any():
         matches = bf.match(des1, des2)
     else:
-        return none
+        return None
 
     # print "matches"
-    # print(len(matches))
-
     return len(matches)
 
 
 def draw_circles(img, circles):
-    for i in circles[0, :]: # todo non null
-        center = (i[0], i[1])
-        cropped_circle_img = crop_circle_img(img, i, 30)
-        radius = i[2]
-        matches = sif_feature_detection(cropped_circle_img)
-        if matches > MIN_MATCH_COUNT:
-            cv.circle(img, center, radius, (255, 255, 255), 3)
-        else:
-            cv.circle(img, center, radius, (0, 0, 0), 3)
-        # circle center
-        # circle outline
-    return img
+    if circles is not None and circles.any():
+        for i in circles[0, :]: # todo non null
+            center = (i[0], i[1])
+            cropped_circle_img = crop_circle_img(img, i, 30)
+            radius = i[2]
+            matches = sif_feature_detection(cropped_circle_img)
+            if matches > MIN_MATCH_COUNT:
+                cv.circle(img, center, radius, (255, 255, 255), 3)
+            else:
+                cv.circle(img, center, radius, (0, 0, 0), 3)
+                # circle center
+                # circle outline
+        return img
+    return None
 
 
 def convert_to_robot_coordinates(coordinates):
     x_conversion = FOV_WIDTH / FOV_PIX_X
     y_conversion = FOV_HEIGHT / FOV_PIX_Y
     meter_coordinates = [0, 0]
-    meter_coordinates[0] = 0.56367 - (coordinates[1] * y_conversion)
-    meter_coordinates[1] = -0.2744 - (coordinates[0] * x_conversion)
+    meter_coordinates[0] = 0.562798 - (coordinates[1] * y_conversion)
+    meter_coordinates[1] = -0.282402 - (coordinates[0] * x_conversion)
 
     return meter_coordinates
 

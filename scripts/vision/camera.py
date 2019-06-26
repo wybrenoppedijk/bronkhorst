@@ -22,7 +22,7 @@ class LfeDetector:
 
     def __init__(self):
             # assume any non-default service names have been set.  Wait for the service to become ready
-        cal_params = self.parse_calibration_file('/home/wybren/catkin_ws/src/bronkhorst/calibration/manta.yaml')
+        cal_params = self.parse_calibration_file('/home/marcel/catkin_ws/src/bronkhorst/calibration/manta.yaml')
 
         self.cm, self.coeffs, w, h = cal_params
         self.ncm, _ = cv2.getOptimalNewCameraMatrix(self.cm, self.coeffs,

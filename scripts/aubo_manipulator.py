@@ -37,14 +37,14 @@ class MoveGroupPythonInteface(object):
         self.planning_frame = self.group.get_planning_frame()
         self.group_names = self.robot.get_group_names()
 
-        self.orientation = tf.transformations.quaternion_from_euler(3.106, 0.0, -1.507) #3.12 0.015 0.269
+        self.orientation = tf.transformations.quaternion_from_euler(3.106, 0.0, -1.570) #3.12 0.015 0.269
 
         # Robot configuration
         self.group.set_goal_position_tolerance(0.01)
         self.group.set_goal_orientation_tolerance(0.1)
-        self.group.set_planning_time(0.1)
-        self.group.set_max_acceleration_scaling_factor(0.1)
-        self.group.set_max_velocity_scaling_factor(0.1)
+        self.group.set_planning_time(1)
+        self.group.set_max_acceleration_scaling_factor(0.01)
+        self.group.set_max_velocity_scaling_factor(0.001)
 
         lfe_sub = message_filters.Subscriber('lfe_coordinate', LfeCoordinate)
         lfe_sub.registerCallback(self.handle_lfe_position)
@@ -100,13 +100,14 @@ class MoveGroupPythonInteface(object):
             print "Service call failed: %s" % e
 
     def axe_is_same(self, new_pose, last_pose):
-        if abs(new_pose - last_pose) < 0.01:
+        if abs(new_pose - last_pose) < 0.05:
             return True
 
     def pos_is_same(self, msg):
         if self.last_message is None:
+            print "Last message is not yet set"
             return False
-        if self.axe_is_same(msg.x_axe, self.last_message.x_axe) and  axe_is_same(msg.y_axe, self.last_message.y_axe):
+        if self.axe_is_same(msg.x_axe, self.last_message.x_axe) and self.axe_is_same(msg.y_axe, self.last_message.y_axe):
             print("Position is the same as last message")
             return True
         return False
