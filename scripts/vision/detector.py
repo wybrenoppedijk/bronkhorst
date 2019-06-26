@@ -2,7 +2,7 @@ import numpy as np
 import cv2 as cv
 import rospy
 
-from bronkhorst.msg import LfeCoordinateArray, LfeCoordinate
+from bronkhorst.msg import LfeCoordinate
 
 MIN_MATCH_COUNT = 10
 FOV_WIDTH = 0.2510
@@ -39,7 +39,11 @@ def sif_feature_detection(test_img):
     kp2, des2 = orb.detectAndCompute(test_img, None)
 
     bf = cv.BFMatcher(cv.NORM_HAMMING, crossCheck=True)
-    matches = bf.match(des1, des2)
+
+    if des1.any() or des2.any():
+        matches = bf.match(des1, des2)
+    else:
+        return none
 
     # print "matches"
     # print(len(matches))
@@ -66,8 +70,9 @@ def convert_to_robot_coordinates(coordinates):
     x_conversion = FOV_WIDTH / FOV_PIX_X
     y_conversion = FOV_HEIGHT / FOV_PIX_Y
     meter_coordinates = [0, 0]
-    meter_coordinates[0] = coordinates[0] * x_conversion
-    meter_coordinates[1] = coordinates[1] * y_conversion
+    meter_coordinates[0] = 0.56367 - (coordinates[1] * y_conversion)
+    meter_coordinates[1] = -0.2744 - (coordinates[0] * x_conversion)
+
     return meter_coordinates
 
 

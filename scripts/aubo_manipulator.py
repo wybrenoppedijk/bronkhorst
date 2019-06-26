@@ -4,6 +4,7 @@ import sys
 from std_msgs.msg import String
 import geometry_msgs.msg
 import moveit_commander
+import message_filters
 import moveit_msgs.msg
 import rospy
 import tf
@@ -11,7 +12,7 @@ from bronkhorst.srv import SetIO
 import numpy as np
 from bronkhorst.msg import LfeCoordinate
 
-DEFAULT_HEIGHT = 0.045  # Change to better value
+DEFAULT_HEIGHT = 0.111  # Change to better value
 
 class MoveGroupPythonInteface(object):
     def __init__(self):
@@ -24,6 +25,8 @@ class MoveGroupPythonInteface(object):
         rospy.wait_for_service(service_name)
 
         self.set_io = rospy.ServiceProxy(service_name, SetIO)
+
+        self.last_message = None
 
         # Globar variables
         self.robot = moveit_commander.RobotCommander()
@@ -78,12 +81,12 @@ class MoveGroupPythonInteface(object):
 
     def move_to_pillar(self, upside):
         if upside:
-            self.move_to()  # pillar for upside lfe
+            self.move_to(0.4476,-0.2791,0.115)  # pillar for upside lfe
         if not upside:
-            self.move_to()  # pillar for downside lfe
+            self.move_to(0.4656,-0.2791,0.115)  # pillar for downside lfe
 
     def move_to_home(self):
-        self.move_to()  #  home coordinates or joint states.
+        self.move_to(0.2276,-0.2791,0.115)  #  home coordinates or joint states.
 
     def plan_and_execute(self, goal):
         self.group.set_start_state_to_current_state()
@@ -96,23 +99,39 @@ class MoveGroupPythonInteface(object):
         except rospy.ServiceException, e:
             print "Service call failed: %s" % e
 
+    def axe_is_same(self, new_pose, last_pose):
+        if abs(new_pose - last_pose) < 0.01:
+            return True
+
+    def pos_is_same(self, msg):
+        if self.last_message is None:
+            return False
+        if self.axe_is_same(msg.x_axe, self.last_message.x_axe) and  axe_is_same(msg.y_axe, self.last_message.y_axe):
+            print("Position is the same as last message")
+            return True
+        return False
+
+
     def handle_lfe_position(self, msg):
-        self.move_to(msg.x_axe, msg.y_axe, DEFAULT_HEIGHT)
-        rospy.sleep(0.2)
-        self.set_vacuum_state(2)
-        rospy.sleep(0.2)
-        self.set_arm_height()  #should be the z pos that does not destroy the LFE, or read vacuum meter.
-        rospy.sleep(0.4)
-        self.move_to_pillar(msg.upside)
-        rospy.sleep(0.4)
-        self.set_vacuum_state(0)
-        rospy.sleep(0.2)
-        self.move_to_home()
+        if not self.pos_is_same(msg):
+            self.move_to(msg.x_axe, msg.y_axe, DEFAULT_HEIGHT)
+            rospy.sleep(0.2)
+            self.set_vacuum_state(2)
+            rospy.sleep(0.2)
+            self.set_arm_height(0.111)  #should be the z pos that does not destroy the LFE, or read vacuum meter.
+            rospy.sleep(0.4)
+            self.move_to_pillar(msg.upside)
+            rospy.sleep(0.4)
+            self.set_vacuum_state(0)
+            rospy.sleep(0.2)
+            self.move_to_home()
+            self.last_message = msg
 
 
 def main():
     try:
         MoveGroupPythonInteface()
+        rospy.spin()
     except rospy.ROSInterruptException:
         return
     except KeyboardInterrupt:
