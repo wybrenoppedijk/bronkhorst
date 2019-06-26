@@ -1,7 +1,14 @@
 <launch>
-
+    <include file="$(find avt_vimba_camera)/launch/mono_camera.launch"/>
+    <include file="$(find aubo_i5_moveit_config)/launch/moveit_planning_execution.launch">
+        <arg name="robot_ip" value="192.168.1.10"/>
+    </include>
     <node
         pkg="bronkhorst"
-        type="showImage.py"
-        name="showImage"/>
+        type="camera.py"
+        name="camera"/>
+    <node
+        pkg="bronkhorst"
+        type="aubo_manipulator.py"
+        name="aubo_manipulator"/>
 </launch>

@@ -81,9 +81,9 @@ class MoveGroupPythonInteface(object):
 
     def move_to_pillar(self, upside):
         if upside:
-            self.move_to(0.4476,-0.2791,0.115)  # pillar for upside lfe
+            self.move_to(0.4457,-0.2755,0.115)  # pillar for upside lfe
         if not upside:
-            self.move_to(0.4656,-0.2791,0.115)  # pillar for downside lfe
+            self.move_to(0.4645,-0.2791,0.115)  # pillar for downside lfe
 
     def move_to_home(self):
         self.move_to(0.2276,-0.2791,0.115)  #  home coordinates or joint states.
